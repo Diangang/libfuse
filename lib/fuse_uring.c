@@ -28,6 +28,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
+#include <linux/sched.h>
 
 
 /* defined somewhere in uring? */
@@ -429,7 +430,6 @@ fuse_ring_cleanup_thread(void *arg)
 			break;
 		}
 	}
-	fuse_log(FUSE_LOG_INFO, "Exiting cleanup thread\n");
 
 	return NULL;
 }
@@ -463,7 +463,7 @@ fuse_create_user_ring(struct fuse_session *se,
 {
 	int rc;
 	const size_t pg_size = getpagesize();
-	const size_t nr_queues = cfg->uring.per_core_queue ? get_nprocs() : 1;
+	const size_t nr_queues = cfg->uring.per_core_queue ? get_nprocs_conf() : 1;
 	const size_t q_depth = cfg->uring.fg_queue_depth +
 			       cfg->uring.bg_queue_depth;
 
@@ -581,6 +581,23 @@ err:
 
 }
 
+/**
+ * In per-core-queue configuration we have thread per core - the thread
+ * to that core
+ */
+static void fuse_uring_set_thread_core(int qid)
+{
+	cpu_set_t mask;
+	int rc;
+
+	CPU_ZERO(&mask);
+	CPU_SET(qid, &mask);
+
+	rc = sched_setaffinity(0, sizeof(cpu_set_t), &mask);
+	if (rc != 0)
+		fuse_log(FUSE_LOG_ERR, "Failed to bind qid=%d to its core\n", qid);
+}
+
 static void *fuse_uring_thread(void *arg)
 {
 	struct fuse_ring_queue *queue = arg;
@@ -590,7 +607,7 @@ static void *fuse_uring_thread(void *arg)
 	int res;
 
 	if (ring_pool->per_core_queue)
-		numa_run_on_node(queue->qid); // qid == core index
+		fuse_uring_set_thread_core(queue->qid);
 
 	char thread_name[16] = { 0 };
 	snprintf(thread_name, 16, "fuse-ring-%d", queue->qid);
