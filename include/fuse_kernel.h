@@ -1052,7 +1052,7 @@ struct fuse_uring_cfg {
 /* Device ioctls: */
 #define FUSE_DEV_IOC_MAGIC		229
 #define FUSE_DEV_IOC_CLONE		_IOR(FUSE_DEV_IOC_MAGIC, 0, uint32_t)
-#define FUSE_DEV_IOC_URING		_IOR(FUSE_DEV_IOC_MAGIC, 1, \
+#define FUSE_DEV_IOC_URING		_IOR(FUSE_DEV_IOC_MAGIC, 3, \
 					     struct fuse_uring_cfg)
 
 struct fuse_lseek_in {
@@ -1160,6 +1160,9 @@ struct fuse_supp_groups {
  */
 #define FUSE_RING_HEADER_BUF_SIZE 4096
 #define FUSE_RING_MIN_IN_OUT_ARG_SIZE 4096
+
+/* The offset parameter is used to identify the request type */
+#define FUSE_URING_MMAP_OFF 0xf8000000ULL
 
 /* Request is background type. Daemon side is free to use this information
  * to handle foreground/background CQEs with different priorities.
