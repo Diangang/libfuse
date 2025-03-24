@@ -22,3 +22,5 @@ option('tests', type : 'boolean', value : true,
 option('disable-libc-symbol-version', type : 'boolean', value : false,
        description: 'Disable versioned symbols through libc')
 
+option('enable-io-uring', type: 'boolean', value: true,
+       description: 'Enable fuse-over-io-uring support')
