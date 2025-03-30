@@ -4591,7 +4591,6 @@ static int fuse_session_loop_remember(struct fuse *f)
 	}
 
 	free(fbuf.mem);
-	fuse_session_reset(se);
 	return res < 0 ? -1 : 0;
 }
 

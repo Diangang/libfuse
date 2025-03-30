@@ -13,6 +13,8 @@
 #include "fuse_lowlevel.h"
 #include "util.h"
 
+#include <pthread.h>
+#include <semaphore.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -68,7 +70,6 @@ struct fuse_session_uring {
 
 struct fuse_session {
 	char *mountpoint;
-	volatile int exited;
 	int fd;
 	struct fuse_custom_io *io;
 	struct mount_opts *mo;
@@ -96,6 +97,11 @@ struct fuse_session {
 	 * a later version, to 'fix' it at run time.
 	 */
 	struct libfuse_version version;
+
+	/* thread synchronization */
+	_Atomic bool mt_exited;
+	pthread_mutex_t mt_lock;
+	sem_t mt_finish;
 
 	/* true if reading requests from /dev/fuse are handled internally */
 	bool buf_reallocable;
