@@ -49,7 +49,6 @@
 #define FUSE_LOOP_MT_DEF_URING_PER_CORE_QUEUE 1
 #define FUSE_LOOP_MT_DEF_URING_FG_DEPTH 16
 #define FUSE_LOOP_MT_DEF_URING_ASYNC_DEPTH 8 /* async queue depth */
-#define FUSE_LOOP_MT_DEV_URING_EXT_THREAD false
 
 /* 4K argument header + 1M data */
 #define FUSE_LOOP_MT_DEF_URING_REQ_ARG_LEN ((1024 * 1024) + 4096)
@@ -484,7 +483,6 @@ struct fuse_loop_config *fuse_loop_cfg_create(void)
 	config->uring.sync_queue_depth = FUSE_LOOP_MT_DEF_URING_FG_DEPTH;
 	config->uring.async_queue_depth = FUSE_LOOP_MT_DEF_URING_ASYNC_DEPTH;
 	config->uring.ring_req_arg_len = FUSE_LOOP_MT_DEF_URING_REQ_ARG_LEN;
-	config->uring.external_threads = FUSE_LOOP_MT_DEV_URING_EXT_THREAD;
 
 	return config;
 }
@@ -556,9 +554,4 @@ int fuse_loop_cfg_set_uring_opts(struct fuse_loop_config *config,
 		config->uring.ring_req_arg_len = arg_len;
 
 	return 0;
-}
-
-void fuse_loop_cfg_set_uring_ext_thread(struct fuse_loop_config *config)
-{
-	config->uring.external_threads = true;
 }

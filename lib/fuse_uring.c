@@ -571,8 +571,6 @@ fuse_create_ring(struct fuse_session *se,
 	fuse_ring->queue_mmap_size = mmap_size;
 	fuse_ring->queue_req_buf_size = req_buf_size;
 
-	se->ring.external_threads = cfg->uring.external_threads;
-
 	/*
 	 * very basic queue initialization, that cannot fail and will
 	 * allow easy cleanup if something (like mmap) fails in the middle
@@ -868,8 +866,7 @@ int fuse_uring_start(struct fuse_session *se,
 		goto out;
 	}
 
-	if (!se->ring.external_threads)
-		rc = fuse_uring_start_ring_threads(fuse_ring);
+	rc = fuse_uring_start_ring_threads(fuse_ring);
 
 out:
 	se->ring.pool = fuse_ring;
