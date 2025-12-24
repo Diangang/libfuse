@@ -513,18 +513,16 @@ static int fuse_uring_prepare_fetch_sqes(struct fuse_ring_queue *queue)
 }
 
 static struct fuse_ring_pool *
-fuse_create_ring(struct fuse_session *se,
-		      struct fuse_loop_config *cfg)
+fuse_create_ring(struct fuse_session *se)
 {
 	int rc;
 	struct fuse_ring_pool *fuse_ring = NULL;
 
 	const size_t pg_size = getpagesize();
-	const size_t nr_queues = cfg->uring.per_core_queue ? get_nprocs_conf() : 1;
-	const size_t q_depth = cfg->uring.sync_queue_depth +
-			       cfg->uring.async_queue_depth;
+	const size_t nr_queues = get_nprocs_conf();
+	const size_t q_depth = 16 + 8;
 
-	const size_t ring_req_arg_len = cfg->uring.ring_req_arg_len;
+	const size_t ring_req_arg_len = (1024 * 1024) + 4096;
 
 	const size_t req_buf_size =
 		ROUND_UP(sizeof(struct fuse_ring_req) + ring_req_arg_len,
@@ -535,13 +533,12 @@ fuse_create_ring(struct fuse_session *se,
 	fuse_log(FUSE_LOG_ERR,
 		 "Creating ring per-core-queue=%d "
 		 "sync-depth=%d async-depth=%d arglen=%d\n",
-		 cfg->uring.per_core_queue, cfg->uring.sync_queue_depth,
-		 cfg->uring.async_queue_depth, cfg->uring.ring_req_arg_len);
+		 1, 16, 8, (1024 * 1024) + 4096);
 
 	rc = fuse_uring_setup_kernel_ring(se->fd, nr_queues,
-					  cfg->uring.sync_queue_depth,
-					  cfg->uring.async_queue_depth,
-					  cfg->uring.ring_req_arg_len,
+					  16,
+					  8,
+					  (1024 * 1024) + 4096,
 					  req_buf_size);
 	if (rc) {
 		fuse_log(FUSE_LOG_ERR, "Kernel ring configuration failed: %s\n",
@@ -565,7 +562,7 @@ fuse_create_ring(struct fuse_session *se,
 	fuse_ring->se = se;
 	fuse_ring->nr_queues = nr_queues;
 	fuse_ring->queue_depth = q_depth;
-	fuse_ring->per_core_queue = cfg->uring.per_core_queue;
+	fuse_ring->per_core_queue = 1;
 	fuse_ring->req_arg_len = ring_req_arg_len;
 	fuse_ring->queue_size = queue_sz;
 	fuse_ring->queue_mmap_size = mmap_size;
@@ -581,8 +578,7 @@ fuse_create_ring(struct fuse_session *se,
 			fuse_uring_get_queue(fuse_ring, qid);
 		queue->fd = -1;
 		queue->ring.ring_fd = -1;
-		queue->numa_node = cfg->uring.per_core_queue ?
-			numa_node_of_cpu(qid) : UINT32_MAX;
+		queue->numa_node = numa_node_of_cpu(qid);
 		queue->qid = qid;
 		queue->ring_pool = fuse_ring;
 		queue->mmap_buf = NULL;
@@ -852,15 +848,14 @@ static int fuse_uring_sanity_check(void)
 	return 0;
 }
 
-int fuse_uring_start(struct fuse_session *se,
-		     struct fuse_loop_config *config)
+int fuse_uring_start(struct fuse_session *se)
 {
 	int rc = 0;
 	struct fuse_ring_pool *fuse_ring;
 
 	fuse_uring_sanity_check();
 
-	fuse_ring = fuse_create_ring(se, config);
+	fuse_ring = fuse_create_ring(se);
 	if (fuse_ring == NULL) {
 		rc = -EADDRNOTAVAIL;
 		goto out;

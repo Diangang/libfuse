@@ -2184,6 +2184,14 @@ void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	if (se->conn.want & FUSE_CAP_SETXATTR_EXT)
 		outargflags |= FUSE_SETXATTR_EXT;
 
+	if (FUSE_LOOP_MT_DEF_USE_URING) {
+		int err = fuse_uring_start(se);
+		if (err) {
+			fuse_log(FUSE_LOG_WARNING,
+			 "Failed to start uring, fall back from uring to threads.\n");
+		}
+	}
+
 	if (inargflags & FUSE_INIT_EXT) {
 		outargflags |= FUSE_INIT_EXT;
 		outarg.flags2 = outargflags >> 32;

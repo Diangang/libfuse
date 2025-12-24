@@ -25,12 +25,7 @@
 #include <sys/ioctl.h>
 #include <assert.h>
 #include <limits.h>
-
-#define HAVE_URING
-
-#ifdef HAVE_URING
 #include "fuse_uring_i.h"
-#endif
 
 /* Environment var controlling the thread stack size */
 #define ENVNAME_THREAD_STACK "FUSE_THREAD_STACK"
@@ -40,19 +35,6 @@
 #define FUSE_LOOP_MT_DEF_MAX_THREADS 10
 #define FUSE_LOOP_MT_DEF_IDLE_THREADS -1 /* thread destruction is disabled
                                           * by default */
-#define FUSE_LOOP_MT_DEF_USE_URING 1 /* uring is disabled by default, until
-				      * it is proven to work stable
-				      * enabling this does still might not use
-				      * uring, if uring is not supported by
-				      * the kernel
-				      */
-#define FUSE_LOOP_MT_DEF_URING_PER_CORE_QUEUE 1
-#define FUSE_LOOP_MT_DEF_URING_FG_DEPTH 16
-#define FUSE_LOOP_MT_DEF_URING_ASYNC_DEPTH 8 /* async queue depth */
-
-/* 4K argument header + 1M data */
-#define FUSE_LOOP_MT_DEF_URING_REQ_ARG_LEN ((1024 * 1024) + 4096)
-
 
 /* an arbitrary large value that cannot be valid */
 #define FUSE_LOOP_MT_MAX_THREADS      (100U * 1000)
@@ -362,26 +344,6 @@ int fuse_session_loop_mt_312(struct fuse_session *se, struct fuse_loop_config *c
 		created_config = 1;
 	}
 
-	if (config->uring.use_uring) {
-#ifdef HAVE_URING
-		err = fuse_uring_start(se, config);
-		if (err) {
-			fuse_log(FUSE_LOG_WARNING,
-				 "Failed to start uring, "
-				 "fall back from uring to threads.\n");
-		}
-
-		/* threads are also started with uring for
-		 * 1 - stop uring on the kernel side on daemon exit
-		 * 2 - special request not handled by uring yet
-		 */
-#else
-		fuse_log(FUSE_LOG_WARNING,
-			 "libfuse not compiled with uring, falling back to "
-			 "threads.");
-		config->uring.use_uring = false;
-#endif
-	}
 
 	memset(&mt, 0, sizeof(struct fuse_mt));
 	mt.se = se;
@@ -534,24 +496,3 @@ void fuse_loop_cfg_set_clone_fd(struct fuse_loop_config *config,
 	config->clone_fd = value;
 }
 
-int fuse_loop_cfg_set_uring_opts(struct fuse_loop_config *config,
-				 bool use_uring, unsigned int per_core_queue,
-				 unsigned int sync_queue_depth,
-				 unsigned int async_queue_depth,
-				 unsigned int arg_len)
-{
-	config->uring.use_uring = use_uring;
-
-	config->uring.per_core_queue = per_core_queue ? true : false;
-
-	if (sync_queue_depth != 0)
-		config->uring.sync_queue_depth = sync_queue_depth;
-
-	if (async_queue_depth != 0)
-		config->uring.async_queue_depth = async_queue_depth;
-
-	if (arg_len != 0)
-		config->uring.ring_req_arg_len = arg_len;
-
-	return 0;
-}

@@ -26,6 +26,7 @@
 
 #include <utime.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
