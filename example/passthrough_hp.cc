@@ -157,7 +157,6 @@ struct Fs {
     bool nocache;
     size_t num_threads;
     bool clone_fd;
-
     std::string fuse_mount_options;
     bool direct_io;
 };
@@ -1224,6 +1223,7 @@ static cxxopts::ParseResult parse_options(int argc, char **argv) {
         ("clone-fd", "use separate fuse device fd for each thread")
         ("direct-io", "enable fuse kernel internal direct-io");
 
+
     // FIXME: Find a better way to limit the try clause to just
     // opt_parser.parse() (cf. https://github.com/jarro2783/cxxopts/issues/146)
     auto options = parse_wrapper(opt_parser, argc, argv);
@@ -1254,7 +1254,6 @@ static cxxopts::ParseResult parse_options(int argc, char **argv) {
     fs.num_threads = options["num-threads"].as<int>();
     fs.clone_fd = options.count("clone-fd");
     fs.direct_io = options.count("direct-io");
-
     char* resolved_path = realpath(argv[1], NULL);
     if (resolved_path == NULL)
         warn("WARNING: realpath() failed with");

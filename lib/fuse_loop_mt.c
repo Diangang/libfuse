@@ -25,12 +25,7 @@
 #include <sys/ioctl.h>
 #include <assert.h>
 #include <limits.h>
-
-#define HAVE_URING
-
-#ifdef HAVE_URING
 #include "fuse_uring_i.h"
-#endif
 
 /* Environment var controlling the thread stack size */
 #define ENVNAME_THREAD_STACK "FUSE_THREAD_STACK"
@@ -360,27 +355,6 @@ int fuse_session_loop_mt_312(struct fuse_session *se, struct fuse_loop_config *c
 		/* The caller does not care about parameters - use the default */
 		config = fuse_loop_cfg_create();
 		created_config = 1;
-	}
-
-	if (config->uring.use_uring) {
-#ifdef HAVE_URING
-		err = fuse_uring_start(se, config);
-		if (err) {
-			fuse_log(FUSE_LOG_WARNING,
-				 "Failed to start uring, "
-				 "fall back from uring to threads.\n");
-		}
-
-		/* threads are also started with uring for
-		 * 1 - stop uring on the kernel side on daemon exit
-		 * 2 - special request not handled by uring yet
-		 */
-#else
-		fuse_log(FUSE_LOG_WARNING,
-			 "libfuse not compiled with uring, falling back to "
-			 "threads.");
-		config->uring.use_uring = false;
-#endif
 	}
 
 	memset(&mt, 0, sizeof(struct fuse_mt));

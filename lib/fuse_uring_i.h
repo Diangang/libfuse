@@ -26,5 +26,5 @@ fuse_session_process_uring_cqe(struct fuse_session *se, struct fuse_req *req,
 			       struct fuse_in_header *in,
                                void *inarg, size_t in_arg_len);
 
-int fuse_uring_start(struct fuse_session *se, struct fuse_loop_config *config);
+int fuse_uring_start(struct fuse_session *se);
 int fuse_uring_join_threads(struct fuse_session *se);
