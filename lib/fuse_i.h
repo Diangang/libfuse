@@ -79,7 +79,6 @@ struct fuse_session {
 	struct {
 		int nr_queues;
 		struct fuse_ring_pool *pool;
-		bool external_threads:1;
 	} ring;
 };
 
@@ -164,13 +163,6 @@ struct fuse_loop_config
 		 * whether to use a separate queue per core
 		 */
 		bool per_core_queue:1;
-
-		/**
-		 * whether to use an external thread controlled by the file
-		 * system, instead of spawning a new thread per queue by
-		 * the libfuse io-uring interface.
-		 */
-		bool external_threads:1;
 
 		/** The ring foreground request queue depth */
 		unsigned int sync_queue_depth;

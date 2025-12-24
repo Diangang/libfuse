@@ -165,7 +165,6 @@ struct Fs {
     struct {
         bool enable;
         bool per_core_queue;
-        bool external_threads;
         int sync_queue_depth;
         int async_queue_depth;
         int arglen;
@@ -1238,7 +1237,6 @@ static cxxopts::ParseResult parse_options(int argc, char **argv) {
         ("direct-io", "enable fuse kernel internal direct-io")
         ("uring", "use uring communication")
         ("uring-per-core-queue", "Use a queue per cpu core")
-        ("uring-external-threads", "For testing, threads are owned by passthough and not liburing.")
         ("uring-fg-depth", "Uring foreground queue depth",
             cxxopts::value<int>()->default_value(SFS_DEFAULT_URING_FG_DEPTH))
         ("uring-bg-depth", "Uring background queue depth",
@@ -1279,7 +1277,6 @@ static cxxopts::ParseResult parse_options(int argc, char **argv) {
 
     fs.uring.enable = options.count("uring");
     fs.uring.per_core_queue = options.count("uring-per-core-queue");
-    fs.uring.external_threads = options.count("uring-external-threads");
     fs.uring.sync_queue_depth = options["uring-fg-depth"].as<int>();
     fs.uring.async_queue_depth = options["uring-bg-depth"].as<int>();
     fs.uring.arglen = options["uring-arglen"].as<int>();
@@ -1394,8 +1391,6 @@ int main(int argc, char *argv[]) {
                                  fs.uring.sync_queue_depth,
                                  fs.uring.async_queue_depth,
                                  fs.uring.arglen);
-    if (fs.uring.external_threads)
-        fuse_loop_cfg_set_uring_ext_thread(loop_config);
 
     if (fuse_session_mount(se, argv[2]) != 0)
         goto err_out3;
