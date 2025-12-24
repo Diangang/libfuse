@@ -80,11 +80,6 @@ using namespace std;
 
 #define SFS_DEFAULT_THREADS "-1" // take libfuse value as default
 #define SFS_DEFAULT_CLONE_FD "0"
-#define SFS_DEFAULT_URING  "1"
-#define SFS_DEFAULT_URING_PER_CORE_QUEUE  "1"
-#define SFS_DEFAULT_URING_FG_DEPTH  "0"
-#define SFS_DEFAULT_URING_BG_DEPTH  "0"
-#define SFS_DEFAULT_URING_ARGLEN    "0"
 
 /* We are re-using pointers to our `struct sfs_inode` and `struct
    sfs_dirp` elements as inodes and file handles. This means that we
@@ -162,13 +157,6 @@ struct Fs {
     bool nocache;
     size_t num_threads;
     bool clone_fd;
-    struct {
-        bool enable;
-        bool per_core_queue;
-        int sync_queue_depth;
-        int async_queue_depth;
-        int arglen;
-    } uring;
 
     std::string fuse_mount_options;
     bool direct_io;
@@ -1232,17 +1220,9 @@ static cxxopts::ParseResult parse_options(int argc, char **argv) {
         ("o", "Mount options (see mount.fuse(5) - only use if you know what "
               "you are doing)", cxxopts::value(mount_options))
         ("num-threads", "Number of libfuse worker threads",
-            cxxopts::value<int>()->default_value(SFS_DEFAULT_THREADS))
+                        cxxopts::value<int>()->default_value(SFS_DEFAULT_THREADS))
         ("clone-fd", "use separate fuse device fd for each thread")
-        ("direct-io", "enable fuse kernel internal direct-io")
-        ("uring", "use uring communication")
-        ("uring-per-core-queue", "Use a queue per cpu core")
-        ("uring-fg-depth", "Uring foreground queue depth",
-            cxxopts::value<int>()->default_value(SFS_DEFAULT_URING_FG_DEPTH))
-        ("uring-bg-depth", "Uring background queue depth",
-            cxxopts::value<int>()->default_value(SFS_DEFAULT_URING_BG_DEPTH))
-        ("uring-arglen", "uring buffer size",
-            cxxopts::value<int>()->default_value(SFS_DEFAULT_URING_ARGLEN));
+        ("direct-io", "enable fuse kernel internal direct-io");
 
     // FIXME: Find a better way to limit the try clause to just
     // opt_parser.parse() (cf. https://github.com/jarro2783/cxxopts/issues/146)
@@ -1274,12 +1254,6 @@ static cxxopts::ParseResult parse_options(int argc, char **argv) {
     fs.num_threads = options["num-threads"].as<int>();
     fs.clone_fd = options.count("clone-fd");
     fs.direct_io = options.count("direct-io");
-
-    fs.uring.enable = options.count("uring");
-    fs.uring.per_core_queue = options.count("uring-per-core-queue");
-    fs.uring.sync_queue_depth = options["uring-fg-depth"].as<int>();
-    fs.uring.async_queue_depth = options["uring-bg-depth"].as<int>();
-    fs.uring.arglen = options["uring-arglen"].as<int>();
 
     char* resolved_path = realpath(argv[1], NULL);
     if (resolved_path == NULL)
@@ -1383,12 +1357,6 @@ int main(int argc, char *argv[]) {
 
     if (fs.num_threads != -1)
         fuse_loop_cfg_set_idle_threads(loop_config, fs.num_threads);
-
-    fuse_loop_cfg_set_uring_opts(loop_config, fs.uring.enable,
-                                 fs.uring.per_core_queue,
-                                 fs.uring.sync_queue_depth,
-                                 fs.uring.async_queue_depth,
-                                 fs.uring.arglen);
 
     if (fuse_session_mount(se, argv[2]) != 0)
         goto err_out3;
