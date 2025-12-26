@@ -2672,13 +2672,6 @@ _do_init(fuse_req_t req, const fuse_ino_t nodeid, const void *op_in,
 		enable_io_uring = true;
 	}
 
-	if (inargflags & FUSE_INIT_EXT) {
-		outargflags |= FUSE_INIT_EXT;
-		outarg.flags2 = outargflags >> 32;
-	}
-
-	outarg.flags = outargflags;
-
 	outarg.max_readahead = se->conn.max_readahead;
 	outarg.max_write = se->conn.max_write;
 	if (se->conn.proto_minor >= 13) {
@@ -2730,6 +2723,12 @@ _do_init(fuse_req_t req, const fuse_ino_t nodeid, const void *op_in,
 			enable_io_uring = false;
 		}
 	}
+
+	if (inargflags & FUSE_INIT_EXT) {
+		outargflags |= FUSE_INIT_EXT;
+		outarg.flags2 = outargflags >> 32;
+	}
+	outarg.flags = outargflags;
 
 	/*
 	 * Has to be set before replying, as new kernel requests might
